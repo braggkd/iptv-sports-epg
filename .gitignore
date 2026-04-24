@@ -1,0 +1,21 @@
+# Secrets — NEVER commit
+provider.env
+
+# Claude Code local settings — can contain credentials in permission allowlists
+.claude/settings.local.json
+
+# Internal project notes — not for the public repo
+HANDOFF.md
+
+# Raw API dumps — not useful in the public repo and bulky
+cache/
+
+# Local sample — prior-session artifact
+epg_sample.xml
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
