@@ -298,37 +298,62 @@ def build_xmltv(channels: list[Channel], now_utc: datetime) -> str:
         lines.append(f'    <display-name>{escape(display)}</display-name>')
         lines.append('  </channel>')
 
-    # 24-hour "Off Air" block for channels with no event. Kept simple:
-    # one big block, not a grid of empty 30-min slots.
+    # Coverage window: from the top of the current hour through the next 24h.
+    # Every channel gets this window fully covered so TiviTime / other players
+    # never see a gap ("No Information"); gaps around real events get filled
+    # with "Off Air" before and after the event.
     off_air_start = now_utc.replace(minute=0, second=0, microsecond=0)
     off_air_stop = off_air_start + timedelta(hours=24)
 
+    def emit_off_air(start: datetime, stop: datetime, tvg_id_esc: str, cat: str) -> None:
+        lines.append(
+            f'  <programme start="{xmltv_time(start)}" '
+            f'stop="{xmltv_time(stop)}" '
+            f'channel="{tvg_id_esc}">'
+        )
+        lines.append('    <title>Off Air</title>')
+        lines.append(f'    <category>{escape(cat)}</category>')
+        lines.append('  </programme>')
+
     for ch in channels:
         tvg_id = tvg_id_for(ch)
-        if ch.event:
-            lines.append(
-                f'  <programme start="{xmltv_time(ch.event.start_utc)}" '
-                f'stop="{xmltv_time(ch.event.stop_utc)}" '
-                f'channel="{escape(tvg_id, {chr(34): "&quot;"})}">'
-            )
-            lines.append(f'    <title>{escape(ch.event.title)}</title>')
-            lines.append(f'    <category>{escape(ch.category_name)}</category>')
-            if not ch.event.had_explicit_stop:
-                # Flag estimated end times in the description so we know
-                # not to trust them too tightly
-                lines.append(f'    <desc>{escape(f"Estimated end time. Source: {ch.raw_name}")}</desc>')
-            else:
-                lines.append(f'    <desc>{escape(ch.raw_name)}</desc>')
-            lines.append('  </programme>')
+        tvg_id_esc = escape(tvg_id, {chr(34): "&quot;"})
+
+        # Does the event overlap our coverage window? If not, treat as empty.
+        event_in_window = (
+            ch.event is not None
+            and ch.event.stop_utc > off_air_start
+            and ch.event.start_utc < off_air_stop
+        )
+
+        if not event_in_window:
+            emit_off_air(off_air_start, off_air_stop, tvg_id_esc, ch.category_name)
+            continue
+
+        ev_start = ch.event.start_utc
+        ev_stop = ch.event.stop_utc
+
+        # Pre-event filler
+        if ev_start > off_air_start:
+            emit_off_air(off_air_start, ev_start, tvg_id_esc, ch.category_name)
+
+        # The event itself
+        lines.append(
+            f'  <programme start="{xmltv_time(ev_start)}" '
+            f'stop="{xmltv_time(ev_stop)}" '
+            f'channel="{tvg_id_esc}">'
+        )
+        lines.append(f'    <title>{escape(ch.event.title)}</title>')
+        lines.append(f'    <category>{escape(ch.category_name)}</category>')
+        if not ch.event.had_explicit_stop:
+            lines.append(f'    <desc>{escape(f"Estimated end time. Source: {ch.raw_name}")}</desc>')
         else:
-            lines.append(
-                f'  <programme start="{xmltv_time(off_air_start)}" '
-                f'stop="{xmltv_time(off_air_stop)}" '
-                f'channel="{escape(tvg_id, {chr(34): "&quot;"})}">'
-            )
-            lines.append('    <title>Off Air</title>')
-            lines.append(f'    <category>{escape(ch.category_name)}</category>')
-            lines.append('  </programme>')
+            lines.append(f'    <desc>{escape(ch.raw_name)}</desc>')
+        lines.append('  </programme>')
+
+        # Post-event filler
+        if ev_stop < off_air_stop:
+            emit_off_air(ev_stop, off_air_stop, tvg_id_esc, ch.category_name)
 
     lines.append('</tv>')
     return "\n".join(lines)
