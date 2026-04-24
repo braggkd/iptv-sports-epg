@@ -281,7 +281,6 @@ def build_xmltv(channels: list[Channel], now_utc: datetime) -> str:
     """Build the full XMLTV document as a string."""
     lines = [
         '<?xml version="1.0" encoding="UTF-8"?>',
-        '<!DOCTYPE tv SYSTEM "xmltv.dtd">',
         f'<tv generator-info-name="iptv-epg-generator" date="{now_utc.strftime("%Y%m%d%H%M%S %z")}">',
     ]
 
@@ -290,12 +289,13 @@ def build_xmltv(channels: list[Channel], now_utc: datetime) -> str:
         tvg_id = tvg_id_for(ch)
         display = display_name_for(ch)
         lines.append(f'  <channel id="{escape(tvg_id, {chr(34): "&quot;"})}">')
-        lines.append(f'    <display-name>{escape(display)}</display-name>')
-        # Second display-name = raw provider name. Lets IPTVEditor's fuzzy
-        # matcher hit a 100% score on unrenamed playlist channels, while
-        # renamed ones still match the short name above.
+        # IPTVEditor only fuzzy-matches against the first <display-name>;
+        # raw provider name goes first so unrenamed playlist channels hit
+        # an exact match. Short name kept as a secondary for any consumer
+        # that reads multiple display-names.
         if ch.raw_name and ch.raw_name != display:
             lines.append(f'    <display-name>{escape(ch.raw_name)}</display-name>')
+        lines.append(f'    <display-name>{escape(display)}</display-name>')
         lines.append('  </channel>')
 
     # 24-hour "Off Air" block for channels with no event. Kept simple:
