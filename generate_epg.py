@@ -291,6 +291,11 @@ def build_xmltv(channels: list[Channel], now_utc: datetime) -> str:
         display = display_name_for(ch)
         lines.append(f'  <channel id="{escape(tvg_id, {chr(34): "&quot;"})}">')
         lines.append(f'    <display-name>{escape(display)}</display-name>')
+        # Second display-name = raw provider name. Lets IPTVEditor's fuzzy
+        # matcher hit a 100% score on unrenamed playlist channels, while
+        # renamed ones still match the short name above.
+        if ch.raw_name and ch.raw_name != display:
+            lines.append(f'    <display-name>{escape(ch.raw_name)}</display-name>')
         lines.append('  </channel>')
 
     # 24-hour "Off Air" block for channels with no event. Kept simple:
