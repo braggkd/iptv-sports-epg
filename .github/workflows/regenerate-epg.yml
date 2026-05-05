@@ -6,9 +6,10 @@ name: Regenerate EPG
 
 on:
   schedule:
-    # Every 4 hours, at the top of the hour (UTC). GitHub Actions cron can
-    # be delayed by several minutes under load — fine for our use case.
-    - cron: '0 */4 * * *'
+    # Once daily at 08:00 UTC = 04:00 EDT (= 03:00 EST in winter — DST drift
+    # of one hour twice a year is harmless for our use case). GitHub Actions
+    # only supports UTC cron and may delay by a few minutes under load.
+    - cron: '0 8 * * *'
   workflow_dispatch:  # Manual trigger from the Actions tab or `gh workflow run`
 
 # Lets the workflow's GITHUB_TOKEN push commits back to the repo.
