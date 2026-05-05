@@ -1,0 +1,65 @@
+name: Regenerate EPG
+
+# Regenerates epg.xml on a schedule and commits the refreshed file back to main.
+# IPTVEditor pulls our raw URL once per day, so this just guarantees something
+# recent is sitting on GitHub whenever IPTVEditor happens to refresh.
+
+on:
+  schedule:
+    # Every 4 hours, at the top of the hour (UTC). GitHub Actions cron can
+    # be delayed by several minutes under load — fine for our use case.
+    - cron: '0 */4 * * *'
+  workflow_dispatch:  # Manual trigger from the Actions tab or `gh workflow run`
+
+# Lets the workflow's GITHUB_TOKEN push commits back to the repo.
+permissions:
+  contents: write
+
+# Cancel an old run if a new one starts (e.g. manual dispatch while a scheduled
+# run is in flight). Avoids commit races on the same branch.
+concurrency:
+  group: regenerate-epg
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Generate EPG
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+          XTREAM_USERNAME: ${{ secrets.XTREAM_USERNAME }}
+          XTREAM_PASSWORD: ${{ secrets.XTREAM_PASSWORD }}
+        run: |
+          python3 generate_epg.py \
+            --base-url "$BASE_URL" \
+            --username "$XTREAM_USERNAME" \
+            --password "$XTREAM_PASSWORD" \
+            --output epg.xml \
+            --categories 911
+
+      - name: Verify XML is well-formed
+        run: |
+          python3 -c "import xml.etree.ElementTree as ET; ET.parse('epg.xml'); print('ok')"
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add epg.xml
+          if git diff --cached --quiet; then
+            echo "No changes to epg.xml; nothing to commit"
+            exit 0
+          fi
+          git commit -m "epg refresh $(date -u +%Y-%m-%dT%H:%M:%SZ) [skip ci]"
+          git push
