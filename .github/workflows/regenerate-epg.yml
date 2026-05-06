@@ -47,7 +47,7 @@ jobs:
             --username "$XTREAM_USERNAME" \
             --password "$XTREAM_PASSWORD" \
             --output epg.xml \
-            --categories 911
+            --categories 911 606
 
       - name: Verify XML is well-formed
         run: |
