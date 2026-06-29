@@ -19,3 +19,4 @@ epg_sample.xml
 # Python
 __pycache__/
 *.pyc
+provider.env.bak
