@@ -484,12 +484,15 @@ def build_xmltv(channels: list[Channel], now_utc: datetime) -> str:
         lines.append(f'    <display-name>{escape(display)}</display-name>')
         lines.append('  </channel>')
 
-    # Coverage window: from the top of the current hour through the next 24h.
-    # Every channel gets this window fully covered so TiviTime / other players
-    # never see a gap ("No Information"); gaps around real events get filled
-    # with "Off Air" before and after the event.
-    off_air_start = now_utc.replace(minute=0, second=0, microsecond=0)
-    off_air_stop = off_air_start + timedelta(hours=24)
+    # Coverage window: 24 hours backward through 24 hours forward from now.
+    # The backward portion matters because most events listed in the channel
+    # name have already started (and possibly already ended) by the time the
+    # workflow runs. Without backward coverage, the channel shows "Off Air"
+    # even though TiviMate users may still want to see what just played.
+    # Off-air filler is emitted *only outside* any real event window, never
+    # across the entire 48h block.
+    off_air_start = (now_utc - timedelta(hours=24)).replace(minute=0, second=0, microsecond=0)
+    off_air_stop = off_air_start + timedelta(hours=48)
 
     def emit_off_air(start: datetime, stop: datetime, tvg_id_esc: str, cat: str) -> None:
         lines.append(
