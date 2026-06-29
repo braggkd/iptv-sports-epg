@@ -23,31 +23,67 @@ from zoneinfo import ZoneInfo
 
 # ---------- Config ----------
 
-# Category IDs we care about, with metadata about how to interpret them.
-# tz: timezone that bare timestamps in channel names use.
-# default_duration_min: used when only a start time is found (ESPN+ style).
-# display_prefix: what the <display-name> in XMLTV looks like. The full
-#   original channel name is kept in <programme>/title.
+# Category IDs we care about, with their human-readable name. The parser
+# itself handles timezone and duration logic uniformly across all categories
+# (see PARSER DOCS at top of this file), so adding a new category is just:
+#
+#     "<id>": {"name": "<label>"},
+#
+# To add a category to the live runs, also include its id on the workflow's
+# --categories flag in .github/workflows/regenerate-epg.yml.
 CATEGORIES = {
-    "911":  {"name": "ESPN+",    "tz": "America/New_York", "default_duration_min": 180},
-    "1960": {"name": "ESPN+ VIP","tz": "America/New_York", "default_duration_min": 180},
-    "606":  {"name": "MLB",      "tz": "UTC",              "default_duration_min": 210},
-    "1185": {"name": "MLB Team", "tz": "UTC",              "default_duration_min": 210},
-    "597":  {"name": "NFL",      "tz": "America/New_York", "default_duration_min": 240},
+    "911":  {"name": "ESPN+"},
+    "1960": {"name": "ESPN+ VIP"},
+    "606":  {"name": "MLB"},
+    "1185": {"name": "MLB Team"},
+    "597":  {"name": "NFL"},
 }
 
 # Skip channels whose name looks like a category header/separator
 HEADER_RE = re.compile(r"^\s*#{2,}")
 
-# Skip obvious placeholder timestamps (year far in the future)
-PLACEHOLDER_YEAR_THRESHOLD = 2050
-
 # Drop events that ended more than this many hours ago (avoids stale
-# MLB entries from prior games showing up as "current" to TiviMate)
+# entries from prior games showing up as "current" to TiviMate)
 STALE_CUTOFF_HOURS = 24
 
 # Default UA — mimics VLC, since raw curl/python UAs may get 884'd
 DEFAULT_UA = "VLC/3.0.20 LibVLC/3.0.20"
+
+# How long to assume an event runs when only a start time is given.
+DEFAULT_DURATION_MIN = 180
+
+# Year >= this means "the provider used a sentinel placeholder."
+PLACEHOLDER_YEAR_THRESHOLD = 2050
+
+# Bare-time-only formats (no date): if the inferred start is more than
+# this many hours in the past, bump to tomorrow.
+BARE_TIME_PAST_BUMP_HOURS = 6
+
+# Formats with month/day but no year: if "this year" lands the event
+# more than this many days in the past, try next year.
+NO_YEAR_PAST_BUMP_DAYS = 30
+
+ET = ZoneInfo("America/New_York")
+UTC = timezone.utc
+
+MONTH_ABBREV = {
+    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+    "jul": 7, "aug": 8, "sep": 9, "sept": 9, "oct": 10, "nov": 11, "dec": 12,
+}
+
+# Empty-channel signals
+EMPTY_SIGNALS_RE = re.compile(r"no event streaming", re.IGNORECASE)
+
+# Quick check: does this name have ANY plausible timestamp pattern?
+# Used to disambiguate "name ends with : or | = empty" from real events.
+HAS_TS_RE = re.compile(
+    r"start:\d{4}-\d{2}-\d{2}"
+    r"|\(\d{4}-\d{2}-\d{2}"
+    r"|@\s+[A-Za-z]{3,}\s+\d{1,2}\s+\d{1,2}:\d{2}"
+    r"|\b\d{1,2}:\d{2}\s*(?:[ap]m|[AP]M)\b"
+    r"|\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+\d{1,2}\s+[A-Za-z]{3,}\s+\d{1,2}:\d{2}",
+    re.IGNORECASE,
+)
 
 
 # ---------- Data types ----------
@@ -72,93 +108,243 @@ class Channel:
 
 
 # ---------- Parsers ----------
+#
+# A single parse_event() function tries each matcher in priority order
+# (most specific first). All start times are normalized to UTC. The matched
+# timestamp text is stripped from the channel name to produce a cleaner
+# title; the raw name is preserved separately for use in <desc>.
+#
+# Timezone policy: this provider broadcasts to US viewers and almost
+# everything uses Eastern. The MLB 'start:/stop:' format empirically uses
+# UTC. A few formats include an explicit TZ marker (e.g. 'EDT') which we
+# use directly. Everything else falls back to Eastern.
 
-def parse_mlb_style(name: str, tz_name: str) -> ParsedEvent | None:
-    """
-    Matches: 'MLB 1 | Tigers x Reds start:2026-04-24 23:40:00 stop:2026-04-25 06:53:20'
 
-    Both start and stop are explicit, so this is the easiest case.
-    Timestamps in this format are treated as UTC (empirically true for
-    this provider).
-    """
+def _to_utc(dt_naive: datetime, tz) -> datetime:
+    return dt_naive.replace(tzinfo=tz).astimezone(UTC)
+
+
+def _strip_match_and_clean(name: str, match: re.Match) -> str:
+    """Remove the matched timestamp text and clean up trailing channel noise."""
+    title = (name[:match.start()] + name[match.end():]).strip()
+
+    # Strip trailing channel-marker noise that's ugly in the grid:
+    #   ":WNBA  02"   ":Golf  06"   "| US: NFHS PPV 9"   etc.
+    title = re.sub(r"\s*[:|]\s*[A-Za-z][\w +/.-]{0,40}\s+\d+\s*$", "", title)
+    # Strip "| <stuff> | <stuff>" pipe-delimited tails (NFHS-style:
+    # "| 8K EXCLUSIVE | US: NFHS PPV 9")
+    title = re.sub(r"\s*\|\s*[^|]+\s*\|\s*[^|]+\s*$", "", title)
+    # NFHS leaves an orphan "(US)" after stripping the timestamp:
+    # "NEXT | TITLE | (US)" — drop trailing parenthesized country/lang code.
+    title = re.sub(r"\s*\|\s*\([A-Za-z ]{1,8}\)\s*$", "", title)
+    # Collapse internal multi-spaces and stray leading/trailing punctuation
+    title = re.sub(r"\s+", " ", title).strip()
+    title = title.strip("|-: ")
+    return title or name.strip()
+
+
+def _is_empty_channel(name: str) -> bool:
+    """True if the name represents a channel with no scheduled event."""
+    stripped = name.strip()
+    if not stripped:
+        return True
+    if EMPTY_SIGNALS_RE.search(stripped):
+        return True
+    # 'World Cup 08 -', 'MLB 17 |', 'WNBA 04 :', ':Golf  08' — trailing
+    # punctuation with nothing after, AND no timestamp anywhere in the name.
+    if re.search(r"[-:|]\s*$", stripped) and not HAS_TS_RE.search(stripped):
+        return True
+    return False
+
+
+def _match_mlb_start_stop(name: str, now_utc: datetime):
+    """MLB-style: '... start:YYYY-MM-DD HH:MM:SS stop:YYYY-MM-DD HH:MM:SS'.
+    Both timestamps are treated as UTC."""
     m = re.search(
-        r"\|\s*(.+?)\s+start:(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+stop:(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})",
+        r"\s*start:(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})"
+        r"\s+stop:(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})",
         name,
     )
     if not m:
         return None
-    title = m.group(1).strip()
-    start_local = datetime.strptime(m.group(2), "%Y-%m-%d %H:%M:%S")
-    stop_local = datetime.strptime(m.group(3), "%Y-%m-%d %H:%M:%S")
-    tz = ZoneInfo(tz_name)
+    try:
+        start = datetime.strptime(m.group(1), "%Y-%m-%d %H:%M:%S")
+        stop = datetime.strptime(m.group(2), "%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return None
     return ParsedEvent(
-        title=title,
-        start_utc=start_local.replace(tzinfo=tz).astimezone(timezone.utc),
-        stop_utc=stop_local.replace(tzinfo=tz).astimezone(timezone.utc),
+        title=_strip_match_and_clean(name, m),
+        start_utc=_to_utc(start, UTC),
+        stop_utc=_to_utc(stop, UTC),
         had_explicit_stop=True,
     )
 
 
-def parse_espn_plus_style(name: str, tz_name: str, default_duration_min: int) -> ParsedEvent | None:
-    """
-    Matches: 'US (ESPN+ 002) | Macarthur FC vs. Wellington Phoenix Apr 24 5:30AM ET (2026-04-24 05:30:00)'
-
-    The parenthesized ISO timestamp at the end is our source of truth;
-    the human 'Apr 24 5:30AM ET' is redundant but confirms the tz.
-    Only start is given, so we estimate stop using default_duration_min.
-    """
-    m = re.search(r"\|\s*(.+?)\s*\((\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\)\s*$", name)
+def _match_paren_iso(name: str, now_utc: datetime):
+    """ESPN+ style: '... (YYYY-MM-DD HH:MM:SS)'. Treated as ET."""
+    m = re.search(r"\((\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})\)", name)
     if not m:
         return None
-    title = m.group(1).strip()
-
-    # Filter placeholder-year entries (provider uses 2098-12-31 for unassigned slots)
-    year = int(m.group(2))
+    year = int(m.group(1))
     if year >= PLACEHOLDER_YEAR_THRESHOLD:
         return None
-
-    # The human-readable tz marker ('ET', 'PT', etc.) lives inside the title
-    # group — we need to strip it before using title, and it also tells us
-    # if the provider deviates from our configured default tz. For now we
-    # trust the configured tz; if we see PT/CT in the wild we can parse.
-    # Strip common patterns: 'Apr 24 5:30AM ET', 'Apr 24 5:30PM ET', etc.
-    title = re.sub(
-        r"\s+[A-Z][a-z]{2}\s+\d{1,2}\s+\d{1,2}:\d{2}[AP]M\s+[A-Z]{2,3}\s*$",
-        "",
-        title,
-    ).strip()
-
-    start_local = datetime(
-        year, int(m.group(3)), int(m.group(4)),
-        int(m.group(5)), int(m.group(6)), int(m.group(7)),
-    )
-    tz = ZoneInfo(tz_name)
-    start_utc = start_local.replace(tzinfo=tz).astimezone(timezone.utc)
-    stop_utc = start_utc + timedelta(minutes=default_duration_min)
+    try:
+        start_naive = datetime(year, int(m.group(2)), int(m.group(3)),
+                               int(m.group(4)), int(m.group(5)), int(m.group(6)))
+    except ValueError:
+        return None
+    start_utc = _to_utc(start_naive, ET)
     return ParsedEvent(
-        title=title,
+        title=_strip_match_and_clean(name, m),
         start_utc=start_utc,
-        stop_utc=stop_utc,
+        stop_utc=start_utc + timedelta(minutes=DEFAULT_DURATION_MIN),
         had_explicit_stop=False,
     )
 
 
-PARSERS = [parse_mlb_style, parse_espn_plus_style]
+def _match_weekday_date_tz(name: str, now_utc: datetime):
+    """'Mon 29 Jun 17:30 EDT' style (NFHS PPV). Has explicit TZ marker."""
+    m = re.search(
+        r"\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(\d{1,2})\s+([A-Za-z]{3,})\s+"
+        r"(\d{1,2}):(\d{2})\s+([A-Z]{2,4})",
+        name,
+    )
+    if not m:
+        return None
+    day = int(m.group(1))
+    month = MONTH_ABBREV.get(m.group(2).lower()[:3])
+    if month is None:
+        return None
+    hour, minute = int(m.group(3)), int(m.group(4))
+    if not (0 <= hour <= 23 and 0 <= minute <= 59):
+        return None
 
+    tz_map = {
+        "EDT": ET, "EST": ET, "ET": ET,
+        "CDT": ZoneInfo("America/Chicago"), "CST": ZoneInfo("America/Chicago"), "CT": ZoneInfo("America/Chicago"),
+        "MDT": ZoneInfo("America/Denver"), "MST": ZoneInfo("America/Denver"), "MT": ZoneInfo("America/Denver"),
+        "PDT": ZoneInfo("America/Los_Angeles"), "PST": ZoneInfo("America/Los_Angeles"), "PT": ZoneInfo("America/Los_Angeles"),
+        "UTC": UTC, "GMT": UTC,
+    }
+    tz = tz_map.get(m.group(5).upper(), ET)
 
-def parse_event(name: str, category_meta: dict) -> ParsedEvent | None:
-    """Try each parser. First one that matches wins."""
-    for parser in PARSERS:
+    year = now_utc.astimezone(ET).year
+    try:
+        candidate = datetime(year, month, day, hour, minute, 0)
+    except ValueError:
+        return None
+    candidate_utc = _to_utc(candidate, tz)
+    if (now_utc - candidate_utc) > timedelta(days=NO_YEAR_PAST_BUMP_DAYS):
         try:
-            if parser is parse_mlb_style:
-                event = parser(name, category_meta["tz"])
-            else:
-                event = parser(name, category_meta["tz"], category_meta["default_duration_min"])
-            if event is not None:
-                return event
-        except (ValueError, KeyError):
-            # Bad date, missing field, etc. — try next parser
+            candidate = datetime(year + 1, month, day, hour, minute, 0)
+            candidate_utc = _to_utc(candidate, tz)
+        except ValueError:
+            return None
+    return ParsedEvent(
+        title=_strip_match_and_clean(name, m),
+        start_utc=candidate_utc,
+        stop_utc=candidate_utc + timedelta(minutes=DEFAULT_DURATION_MIN),
+        had_explicit_stop=False,
+    )
+
+
+def _match_at_datetime(name: str, now_utc: datetime):
+    """'@ Mon DD HH:MM' (WNBA, 24hr) or '@ Mon DD H:MM AM/PM' (Golf, 12hr).
+    No year given — infer from current ET date, bump to next year if
+    inferred date is too far in the past."""
+    m = re.search(
+        r"@\s+([A-Za-z]{3,})\s+(\d{1,2})\s+(\d{1,2}):(\d{2})\s*([AaPp][Mm])?",
+        name,
+    )
+    if not m:
+        return None
+    month = MONTH_ABBREV.get(m.group(1).lower()[:3])
+    if month is None:
+        return None
+    day = int(m.group(2))
+    hour = int(m.group(3))
+    minute = int(m.group(4))
+    ampm = m.group(5)
+    if ampm:
+        ap = ampm.lower()
+        if ap == "pm" and hour < 12:
+            hour += 12
+        elif ap == "am" and hour == 12:
+            hour = 0
+    if not (0 <= hour <= 23 and 0 <= minute <= 59):
+        return None
+
+    year = now_utc.astimezone(ET).year
+    try:
+        candidate = datetime(year, month, day, hour, minute, 0)
+    except ValueError:
+        return None
+    candidate_utc = _to_utc(candidate, ET)
+    if (now_utc - candidate_utc) > timedelta(days=NO_YEAR_PAST_BUMP_DAYS):
+        try:
+            candidate = datetime(year + 1, month, day, hour, minute, 0)
+            candidate_utc = _to_utc(candidate, ET)
+        except ValueError:
+            return None
+    return ParsedEvent(
+        title=_strip_match_and_clean(name, m),
+        start_utc=candidate_utc,
+        stop_utc=candidate_utc + timedelta(minutes=DEFAULT_DURATION_MIN),
+        had_explicit_stop=False,
+    )
+
+
+def _match_bare_time(name: str, now_utc: datetime):
+    """Bare 'H:MMam/pm' at end of name (World Cup). No date — assume
+    today ET; bump to tomorrow if inferred time is too far in the past."""
+    m = re.search(r"(\d{1,2}):(\d{2})\s*([AaPp][Mm])\s*$", name)
+    if not m:
+        return None
+    hour = int(m.group(1))
+    minute = int(m.group(2))
+    ap = m.group(3).lower()
+    if ap == "pm" and hour < 12:
+        hour += 12
+    elif ap == "am" and hour == 12:
+        hour = 0
+    if not (0 <= hour <= 23 and 0 <= minute <= 59):
+        return None
+
+    now_et = now_utc.astimezone(ET)
+    candidate = datetime(now_et.year, now_et.month, now_et.day, hour, minute, 0)
+    candidate_utc = _to_utc(candidate, ET)
+    if (now_utc - candidate_utc) > timedelta(hours=BARE_TIME_PAST_BUMP_HOURS):
+        candidate_utc = candidate_utc + timedelta(days=1)
+    return ParsedEvent(
+        title=_strip_match_and_clean(name, m),
+        start_utc=candidate_utc,
+        stop_utc=candidate_utc + timedelta(minutes=DEFAULT_DURATION_MIN),
+        had_explicit_stop=False,
+    )
+
+
+# Order matters: most specific format first, most ambiguous last.
+_MATCHERS = [
+    _match_mlb_start_stop,
+    _match_paren_iso,
+    _match_weekday_date_tz,
+    _match_at_datetime,
+    _match_bare_time,
+]
+
+
+def parse_event(name: str, now_utc: datetime) -> ParsedEvent | None:
+    """Return a ParsedEvent if the channel name has a recognizable start
+    time; None otherwise (treat as off-air)."""
+    if _is_empty_channel(name):
+        return None
+    for matcher in _MATCHERS:
+        try:
+            event = matcher(name, now_utc)
+        except Exception:
             continue
+        if event is not None:
+            return event
     return None
 
 
@@ -224,7 +410,7 @@ def process_streams(streams: list[dict], category_id: str, category_meta: dict,
         if epg_id:
             continue
 
-        event = parse_event(name, category_meta)
+        event = parse_event(name, now_utc)
 
         # Skip stale events
         if event and event.stop_utc < stale_cutoff:
@@ -345,10 +531,13 @@ def build_xmltv(channels: list[Channel], now_utc: datetime) -> str:
         )
         lines.append(f'    <title>{escape(ch.event.title)}</title>')
         lines.append(f'    <category>{escape(ch.category_name)}</category>')
+        # Always show the raw channel name in the desc popup so the operator
+        # can see exactly what the parser saw, even when title was cleaned.
+        # Prepend an "Estimated end time" note when stop was a guess.
+        desc = ch.raw_name
         if not ch.event.had_explicit_stop:
-            lines.append(f'    <desc>{escape(f"Estimated end time. Source: {ch.raw_name}")}</desc>')
-        else:
-            lines.append(f'    <desc>{escape(ch.raw_name)}</desc>')
+            desc = f"Estimated end time. Source: {desc}"
+        lines.append(f'    <desc>{escape(desc)}</desc>')
         lines.append('  </programme>')
 
         # Post-event filler
