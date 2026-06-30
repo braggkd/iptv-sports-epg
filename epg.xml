@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tv generator-info-name="iptv-epg-generator" date="20260630195132 +0000">
+<tv generator-info-name="iptv-epg-generator" date="20260630195733 +0000">
   <channel id="41711">
     <display-name>ESPN+ 001</display-name>
   </channel>
@@ -5030,6 +5030,63 @@
   </channel>
   <channel id="39339">
     <display-name>FIFA+ 50</display-name>
+  </channel>
+  <channel id="39508">
+    <display-name>NFL NETWORK</display-name>
+  </channel>
+  <channel id="39509">
+    <display-name>NFL REDZONE</display-name>
+  </channel>
+  <channel id="39510">
+    <display-name>NFL   | 4k</display-name>
+  </channel>
+  <channel id="39511">
+    <display-name>NFL  | 01</display-name>
+  </channel>
+  <channel id="39512">
+    <display-name>NFL  | 02</display-name>
+  </channel>
+  <channel id="39513">
+    <display-name>NFL  | 03</display-name>
+  </channel>
+  <channel id="39514">
+    <display-name>NFL  | 04</display-name>
+  </channel>
+  <channel id="39515">
+    <display-name>NFL  | 05</display-name>
+  </channel>
+  <channel id="39516">
+    <display-name>NFL  | 06</display-name>
+  </channel>
+  <channel id="39517">
+    <display-name>NFL  | 07</display-name>
+  </channel>
+  <channel id="39518">
+    <display-name>NFL  | 08</display-name>
+  </channel>
+  <channel id="39519">
+    <display-name>NFL  | 09</display-name>
+  </channel>
+  <channel id="39520">
+    <display-name>NFL  | 10</display-name>
+  </channel>
+  <channel id="39521">
+    <display-name>NFL  | 11</display-name>
+  </channel>
+  <channel id="39522">
+    <display-name>NFL  | 12</display-name>
+  </channel>
+  <channel id="39523">
+    <display-name>NFL  | 13</display-name>
+  </channel>
+  <channel id="39524">
+    <display-name>NFL  | 14</display-name>
+  </channel>
+  <channel id="39525">
+    <display-name>NFL  | 15</display-name>
+  </channel>
+  <channel id="39526">
+    <display-name>NFL  | 16</display-name>
   </channel>
   <programme start="20260629190000 +0000" stop="20260630080001 +0000" channel="41711">
     <title>Off Air</title>
@@ -12269,5 +12326,81 @@
   <programme start="20260629190000 +0000" stop="20260701190000 +0000" channel="39339">
     <title>Off Air</title>
     <category>FIFA+</category>
+  </programme>
+  <programme start="20260629190000 +0000" stop="20260701190000 +0000" channel="39508">
+    <title>Off Air</title>
+    <category>NFL</category>
+  </programme>
+  <programme start="20260629190000 +0000" stop="20260701190000 +0000" channel="39509">
+    <title>Off Air</title>
+    <category>NFL</category>
+  </programme>
+  <programme start="20260629190000 +0000" stop="20260701190000 +0000" channel="39510">
+    <title>Off Air</title>
+    <category>NFL</category>
+  </programme>
+  <programme start="20260629190000 +0000" stop="20260701190000 +0000" channel="39511">
+    <title>Off Air</title>
+    <category>NFL</category>
+  </programme>
+  <programme start="20260629190000 +0000" stop="20260701190000 +0000" channel="39512">
+    <title>Off Air</title>
+    <category>NFL</category>
+  </programme>
+  <programme start="20260629190000 +0000" stop="20260701190000 +0000" channel="39513">
+    <title>Off Air</title>
+    <category>NFL</category>
+  </programme>
+  <programme start="20260629190000 +0000" stop="20260701190000 +0000" channel="39514">
+    <title>Off Air</title>
+    <category>NFL</category>
+  </programme>
+  <programme start="20260629190000 +0000" stop="20260701190000 +0000" channel="39515">
+    <title>Off Air</title>
+    <category>NFL</category>
+  </programme>
+  <programme start="20260629190000 +0000" stop="20260701190000 +0000" channel="39516">
+    <title>Off Air</title>
+    <category>NFL</category>
+  </programme>
+  <programme start="20260629190000 +0000" stop="20260701190000 +0000" channel="39517">
+    <title>Off Air</title>
+    <category>NFL</category>
+  </programme>
+  <programme start="20260629190000 +0000" stop="20260701190000 +0000" channel="39518">
+    <title>Off Air</title>
+    <category>NFL</category>
+  </programme>
+  <programme start="20260629190000 +0000" stop="20260701190000 +0000" channel="39519">
+    <title>Off Air</title>
+    <category>NFL</category>
+  </programme>
+  <programme start="20260629190000 +0000" stop="20260701190000 +0000" channel="39520">
+    <title>Off Air</title>
+    <category>NFL</category>
+  </programme>
+  <programme start="20260629190000 +0000" stop="20260701190000 +0000" channel="39521">
+    <title>Off Air</title>
+    <category>NFL</category>
+  </programme>
+  <programme start="20260629190000 +0000" stop="20260701190000 +0000" channel="39522">
+    <title>Off Air</title>
+    <category>NFL</category>
+  </programme>
+  <programme start="20260629190000 +0000" stop="20260701190000 +0000" channel="39523">
+    <title>Off Air</title>
+    <category>NFL</category>
+  </programme>
+  <programme start="20260629190000 +0000" stop="20260701190000 +0000" channel="39524">
+    <title>Off Air</title>
+    <category>NFL</category>
+  </programme>
+  <programme start="20260629190000 +0000" stop="20260701190000 +0000" channel="39525">
+    <title>Off Air</title>
+    <category>NFL</category>
+  </programme>
+  <programme start="20260629190000 +0000" stop="20260701190000 +0000" channel="39526">
+    <title>Off Air</title>
+    <category>NFL</category>
   </programme>
 </tv>
