@@ -1,39 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE tv SYSTEM "xmltv.dtd">
-<tv generator-info-name="cuid-test">
+<tv generator-info-name="cuid-test-v3">
   <channel id="41711">
-    <display-name>US (ESPN+ 001) | 2026 Access All England Jun 30 4:00AM ET (2026-06-30 04:00:01)</display-name>
+    <display-name>US (ESPN+ 001)</display-name>
   </channel>
   <channel id="41712">
-    <display-name>US (ESPN+ 002) | 2026 Wimbledon Press Conferences Jun 30 5:30AM ET (2026-06-30 05:30:00)</display-name>
+    <display-name>US (ESPN+ 002)</display-name>
   </channel>
   <channel id="41713">
-    <display-name>US (ESPN+ 003) | No.3 Court Jun 30 6:00AM ET (2026-06-30 06:00:00)</display-name>
+    <display-name>US (ESPN+ 003)</display-name>
   </channel>
   <channel id="41714">
-    <display-name>US (ESPN+ 004) | Court 7 Jun 30 6:00AM ET (2026-06-30 06:00:05)</display-name>
+    <display-name>US (ESPN+ 004)</display-name>
   </channel>
   <channel id="41715">
-    <display-name>US (ESPN+ 005) | Court 14 Jun 30 6:00AM ET (2026-06-30 06:00:10)</display-name>
+    <display-name>US (ESPN+ 005)</display-name>
   </channel>
   <programme start="20260630000000 +0000" stop="20260701000000 +0000" channel="41711">
-    <title>CUID TEST 001 - Full name match</title>
+    <title>TEST V3 - 001 - Match on prefix before pipe</title>
     <category>Test</category>
   </programme>
   <programme start="20260630000000 +0000" stop="20260701000000 +0000" channel="41712">
-    <title>CUID TEST 002 - Full name match</title>
+    <title>TEST V3 - 002 - Match on prefix before pipe</title>
     <category>Test</category>
   </programme>
   <programme start="20260630000000 +0000" stop="20260701000000 +0000" channel="41713">
-    <title>CUID TEST 003 - Full name match</title>
+    <title>TEST V3 - 003 - Match on prefix before pipe</title>
     <category>Test</category>
   </programme>
   <programme start="20260630000000 +0000" stop="20260701000000 +0000" channel="41714">
-    <title>CUID TEST 004 - Full name match</title>
+    <title>TEST V3 - 004 - Match on prefix before pipe</title>
     <category>Test</category>
   </programme>
   <programme start="20260630000000 +0000" stop="20260701000000 +0000" channel="41715">
-    <title>CUID TEST 005 - Full name match</title>
+    <title>TEST V3 - 005 - Match on prefix before pipe</title>
     <category>Test</category>
   </programme>
 </tv>
