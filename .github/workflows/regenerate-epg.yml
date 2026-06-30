@@ -41,11 +41,13 @@ jobs:
           BASE_URL: ${{ secrets.BASE_URL }}
           XTREAM_USERNAME: ${{ secrets.XTREAM_USERNAME }}
           XTREAM_PASSWORD: ${{ secrets.XTREAM_PASSWORD }}
+          IPTVEDITOR_M3U_URL: ${{ secrets.IPTVEDITOR_M3U_URL }}
         run: |
           python3 generate_epg.py \
             --base-url "$BASE_URL" \
             --username "$XTREAM_USERNAME" \
             --password "$XTREAM_PASSWORD" \
+            --iptveditor-m3u-url "$IPTVEDITOR_M3U_URL" \
             --output epg.xml \
             --categories 911 606
 
