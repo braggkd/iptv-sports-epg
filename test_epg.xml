@@ -1,39 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE tv SYSTEM "xmltv.dtd">
-<tv generator-info-name="cuid-test-v4">
-  <channel id="test-001">
-    <display-name>US (ESPN+ 001)</display-name>
+<tv generator-info-name="cuid-test-v5">
+  <channel id="41711">
+    <display-name>z</display-name>
   </channel>
-  <channel id="test-002">
-    <display-name>US (ESPN+ 002)</display-name>
+  <channel id="41712">
+    <display-name>z</display-name>
   </channel>
-  <channel id="test-003">
-    <display-name>US (ESPN+ 003)</display-name>
+  <channel id="41713">
+    <display-name>z</display-name>
   </channel>
-  <channel id="test-004">
-    <display-name>US (ESPN+ 004)</display-name>
+  <channel id="41714">
+    <display-name>z</display-name>
   </channel>
-  <channel id="test-005">
-    <display-name>US (ESPN+ 005)</display-name>
+  <channel id="41715">
+    <display-name>z</display-name>
   </channel>
-  <programme start="20260630000000 +0000" stop="20260701000000 +0000" channel="test-001">
-    <title>TEST V4 - 001 - No CUID</title>
+  <programme start="20260630000000 +0000" stop="20260701000000 +0000" channel="41711">
+    <title>TEST V5 - 001 - CUID only, no name match</title>
     <category>Test</category>
   </programme>
-  <programme start="20260630000000 +0000" stop="20260701000000 +0000" channel="test-002">
-    <title>TEST V4 - 002 - No CUID</title>
+  <programme start="20260630000000 +0000" stop="20260701000000 +0000" channel="41712">
+    <title>TEST V5 - 002 - CUID only, no name match</title>
     <category>Test</category>
   </programme>
-  <programme start="20260630000000 +0000" stop="20260701000000 +0000" channel="test-003">
-    <title>TEST V4 - 003 - No CUID</title>
+  <programme start="20260630000000 +0000" stop="20260701000000 +0000" channel="41713">
+    <title>TEST V5 - 003 - CUID only, no name match</title>
     <category>Test</category>
   </programme>
-  <programme start="20260630000000 +0000" stop="20260701000000 +0000" channel="test-004">
-    <title>TEST V4 - 004 - No CUID</title>
+  <programme start="20260630000000 +0000" stop="20260701000000 +0000" channel="41714">
+    <title>TEST V5 - 004 - CUID only, no name match</title>
     <category>Test</category>
   </programme>
-  <programme start="20260630000000 +0000" stop="20260701000000 +0000" channel="test-005">
-    <title>TEST V4 - 005 - No CUID</title>
+  <programme start="20260630000000 +0000" stop="20260701000000 +0000" channel="41715">
+    <title>TEST V5 - 005 - CUID only, no name match</title>
     <category>Test</category>
   </programme>
 </tv>
