@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tv generator-info-name="iptv-epg-generator" date="20260630193736 +0000">
+<tv generator-info-name="iptv-epg-generator" date="20260630194512 +0000">
   <channel id="41711">
     <display-name>ESPN+ 001</display-name>
   </channel>
@@ -4882,154 +4882,154 @@
     <display-name>World Cup 10</display-name>
   </channel>
   <channel id="39290">
-    <display-name>ENDED | AS DOUANES VS. TP USCA | Tue 30 Jun 10:00 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 1</display-name>
+    <display-name>FIFA+ 01</display-name>
   </channel>
   <channel id="39291">
-    <display-name>NEXT | CA PANTOJA U19 VS. BARÇA ACADEMY U19 | Wed 01 Jul 16:00 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 2</display-name>
+    <display-name>FIFA+ 02</display-name>
   </channel>
   <channel id="39292">
-    <display-name>NEXT | SALCEDO FC U19 VS. ORATORIO JARABACOA U19 | Wed 01 Jul 16:00 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 3</display-name>
+    <display-name>FIFA+ 03</display-name>
   </channel>
   <channel id="39293">
-    <display-name>NEXT | CD SANTO DOMINGO U19 VS. DELFINES DEL ESTE U19 | Wed 01 Jul 16:00 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 4</display-name>
+    <display-name>FIFA+ 04</display-name>
   </channel>
   <channel id="39294">
-    <display-name>NEXT | TADAMON SOUR VS. AL ANSAR | Thu 02 Jul 08:30 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 5</display-name>
+    <display-name>FIFA+ 05</display-name>
   </channel>
   <channel id="39295">
-    <display-name>NEXT | JWAYA SC VS. SHABAB AL SAHEL | Thu 02 Jul 08:30 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 6</display-name>
+    <display-name>FIFA+ 06</display-name>
   </channel>
   <channel id="39296">
-    <display-name>NEXT | AFC MOCA U19 VS. CIBAO FC U19 | Thu 02 Jul 16:00 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 7</display-name>
+    <display-name>FIFA+ 07</display-name>
   </channel>
   <channel id="39297">
-    <display-name>NEXT | SHAO JIANG SA VS. ARTILHEIROS | Fri 03 Jul 09:00 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 8</display-name>
+    <display-name>FIFA+ 08</display-name>
   </channel>
   <channel id="39298">
-    <display-name>NEXT | REYADY ABASEYA VS. RACING | Fri 03 Jul 09:00 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 9</display-name>
+    <display-name>FIFA+ 09</display-name>
   </channel>
   <channel id="39299">
-    <display-name>NEXT | AL HIKMA VS. AL NEJMEH | Fri 03 Jul 14:30 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 10</display-name>
+    <display-name>FIFA+ 10</display-name>
   </channel>
   <channel id="39300">
-    <display-name>NEXT | DOC'S UNITED FC VS. EAGLE CLAW FC | Fri 03 Jul 19:00 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 11</display-name>
+    <display-name>FIFA+ 11</display-name>
   </channel>
   <channel id="39301">
-    <display-name>NEXT | POINTE MICHEL FC VS. DUBLANC FC | Fri 03 Jul 19:00 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 12</display-name>
+    <display-name>FIFA+ 12</display-name>
   </channel>
   <channel id="39302">
-    <display-name>NEXT | AUCKLAND FC RESERVES VS. BAY OLYMPIC FC | Sat 04 Jul 03:00 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 13</display-name>
+    <display-name>FIFA+ 13</display-name>
   </channel>
   <channel id="39303">
-    <display-name>NEXT | GALA FC VS. G. UNIVERSE | Sat 04 Jul 07:00 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 14</display-name>
+    <display-name>FIFA+ 14</display-name>
   </channel>
   <channel id="39304">
-    <display-name>NEXT | MUST IPO SC VS. BENFICA DE MACAU | Sat 04 Jul 09:00 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 15</display-name>
+    <display-name>FIFA+ 15</display-name>
   </channel>
   <channel id="39305">
-    <display-name>NEXT | ORATORIO JARABACOA U19 VS. SALCEDO FC U19 | Sat 04 Jul 16:00 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 16</display-name>
+    <display-name>FIFA+ 16</display-name>
   </channel>
   <channel id="39306">
-    <display-name>NEXT | WE UNITED FC VS. BATH ESTATE FC | Sat 04 Jul 16:00 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 17</display-name>
+    <display-name>FIFA+ 17</display-name>
   </channel>
   <channel id="39307">
-    <display-name>NEXT | MIGHTY AVENGERS FC VS. HARLEM UNITED SC | Sat 04 Jul 18:30 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 18</display-name>
+    <display-name>FIFA+ 18</display-name>
   </channel>
   <channel id="39308">
-    <display-name>NEXT | BARCA ACADEMY U19 VS. CA PANTOJA U19 | Sun 05 Jul 10:00 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 19</display-name>
+    <display-name>FIFA+ 19</display-name>
   </channel>
   <channel id="39309">
-    <display-name>NEXT | CIBAO FC U19 VS. AFC MOCA U19 | Sun 05 Jul 10:00 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 20</display-name>
+    <display-name>FIFA+ 20</display-name>
   </channel>
   <channel id="39310">
-    <display-name>NEXT | MIDDLEHAM UNITED FC VS. MAHAUT SOCA STRIKERS FC | Sun 05 Jul 16:00 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 21</display-name>
+    <display-name>FIFA+ 21</display-name>
   </channel>
   <channel id="39311">
-    <display-name>NEXT | SOUTH EAST FC VS. PORTSMOUTH BOMBERS FC | Sun 05 Jul 18:30 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 22</display-name>
+    <display-name>FIFA+ 22</display-name>
   </channel>
   <channel id="39312">
-    <display-name>NEXT | PORTS AUTHORITY FC VS. WILBERFORCE STRIKERS FC | Mon 06 Jul 12:15 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 23</display-name>
+    <display-name>FIFA+ 23</display-name>
   </channel>
   <channel id="39313">
-    <display-name>NEXT | MIGHTY BLACKPOOL FC VS. BHANTAL FC | Mon 06 Jul 12:15 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 24</display-name>
+    <display-name>FIFA+ 24</display-name>
   </channel>
   <channel id="39314">
-    <display-name>NEXT | DIAMOND STARS FC VS. FC KALLON | Mon 06 Jul 12:15 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 25</display-name>
+    <display-name>FIFA+ 25</display-name>
   </channel>
   <channel id="39315">
-    <display-name>NEXT | WUSUM STARS FC VS. OLD EDWARDIANS FC | Mon 06 Jul 12:15 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 26</display-name>
+    <display-name>FIFA+ 26</display-name>
   </channel>
   <channel id="39316">
-    <display-name>NEXT | KAMBOI EAGLES FC VS. EAST END LIONS FC | Mon 06 Jul 12:15 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 27</display-name>
+    <display-name>FIFA+ 27</display-name>
   </channel>
   <channel id="39317">
-    <display-name>NEXT | SLIFA FC VS. BAI BUREH WARRIORS FC | Tue 07 Jul 12:15 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 28</display-name>
+    <display-name>FIFA+ 28</display-name>
   </channel>
   <channel id="39318">
-    <display-name>NEXT | BULLOM STARS FC VS. FREETOWN CITY FC | Tue 07 Jul 12:15 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 29</display-name>
+    <display-name>FIFA+ 29</display-name>
   </channel>
   <channel id="39319">
-    <display-name>NEXT | LUAWA FC VS. STAR SPORTS ACADEMY | Wed 08 Jul 12:15 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 30</display-name>
+    <display-name>FIFA+ 30</display-name>
   </channel>
   <channel id="39320">
-    <display-name>NEXT | SAFA VS. AL MABARRAH | Fri 03 Jul 09:00 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 31</display-name>
+    <display-name>FIFA+ 31</display-name>
   </channel>
   <channel id="39321">
-    <display-name>NEXT | KARONGA UNITED VS. DEDZA DYNAMOS FC | Sat 04 Jul 08:30 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 32</display-name>
+    <display-name>FIFA+ 32</display-name>
   </channel>
   <channel id="39322">
-    <display-name>NEXT | FCB NYASA BIG BULLETS VS. CRECK SPORTING FC | Sat 04 Jul 08:30 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 33</display-name>
+    <display-name>FIFA+ 33</display-name>
   </channel>
   <channel id="39323">
-    <display-name>NEXT | BLUE EAGLES VS. MOYALE BARRACKS | Sat 04 Jul 08:30 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 34</display-name>
+    <display-name>FIFA+ 34</display-name>
   </channel>
   <channel id="39324">
-    <display-name>NEXT | MASTERS FC VS. KAMUZU BARRACKS FC | Sun 05 Jul 08:30 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 35</display-name>
+    <display-name>FIFA+ 35</display-name>
   </channel>
   <channel id="39325">
-    <display-name>NEXT | MIGHTY WANDERERS VS. MAFCO FC | Sun 05 Jul 08:30 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 36</display-name>
+    <display-name>FIFA+ 36</display-name>
   </channel>
   <channel id="39326">
-    <display-name>NEXT | RED LIONS VS. CIVIL SERVICE UNITED | Sun 05 Jul 08:30 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 37</display-name>
+    <display-name>FIFA+ 37</display-name>
   </channel>
   <channel id="39327">
-    <display-name>NEXT | MITUNDU BAPTIST VS. EKHAYA FC | Sun 05 Jul 08:30 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 38</display-name>
+    <display-name>FIFA+ 38</display-name>
   </channel>
   <channel id="39328">
-    <display-name>NEXT | CHITIPA UNITED VS. SILVER STRIKERS | Sun 05 Jul 08:30 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 39</display-name>
+    <display-name>FIFA+ 39</display-name>
   </channel>
   <channel id="39329">
-    <display-name>NEXT | HARLEM UNITED SC VS. WE UNITED FC | Wed 01 Jul 19:00 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 40</display-name>
+    <display-name>FIFA+ 40</display-name>
   </channel>
   <channel id="39330">
-    <display-name>NEXT | MINDELENSE VS. PALMEIRA | Sat 04 Jul 12:30 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 41</display-name>
+    <display-name>FIFA+ 41</display-name>
   </channel>
   <channel id="39331">
-    <display-name>NEXT | POLISI TANZANIA VS. MBEYA KWANZA | Sun 05 Jul 09:00 EDT (US) | 8K EXCLUSIVE | US: FIFA+ PPV 42</display-name>
+    <display-name>FIFA+ 42</display-name>
   </channel>
   <channel id="39332">
-    <display-name>- NO EVENT STREAMING - | 8K EXCLUSIVE | US: FIFA+ PPV 43</display-name>
+    <display-name>FIFA+ 43</display-name>
   </channel>
   <channel id="39333">
-    <display-name>- NO EVENT STREAMING - | 8K EXCLUSIVE | US: FIFA+ PPV 44</display-name>
+    <display-name>FIFA+ 44</display-name>
   </channel>
   <channel id="39334">
-    <display-name>- NO EVENT STREAMING - | 8K EXCLUSIVE | US: FIFA+ PPV 45</display-name>
+    <display-name>FIFA+ 45</display-name>
   </channel>
   <channel id="39335">
-    <display-name>- NO EVENT STREAMING - | 8K EXCLUSIVE | US: FIFA+ PPV 46</display-name>
+    <display-name>FIFA+ 46</display-name>
   </channel>
   <channel id="39336">
-    <display-name>- NO EVENT STREAMING - | 8K EXCLUSIVE | US: FIFA+ PPV 47</display-name>
+    <display-name>FIFA+ 47</display-name>
   </channel>
   <channel id="39337">
-    <display-name>- NO EVENT STREAMING - | 8K EXCLUSIVE | US: FIFA+ PPV 48</display-name>
+    <display-name>FIFA+ 48</display-name>
   </channel>
   <channel id="39338">
-    <display-name>- NO EVENT STREAMING - | 8K EXCLUSIVE | US: FIFA+ PPV 49</display-name>
+    <display-name>FIFA+ 49</display-name>
   </channel>
   <channel id="39339">
-    <display-name>- NO EVENT STREAMING - | 8K EXCLUSIVE | US: FIFA+ PPV 50</display-name>
+    <display-name>FIFA+ 50</display-name>
   </channel>
   <programme start="20260629190000 +0000" stop="20260630080001 +0000" channel="41711">
     <title>Off Air</title>
