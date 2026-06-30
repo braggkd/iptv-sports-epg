@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tv SYSTEM "xmltv.dtd">
+<tv generator-info-name="cuid-test">
+  <channel id="41711">
+    <display-name>ESPN+ 001</display-name>
+  </channel>
+  <channel id="41712">
+    <display-name>ESPN+ 002</display-name>
+  </channel>
+  <channel id="41713">
+    <display-name>ESPN+ 003</display-name>
+  </channel>
+  <channel id="41714">
+    <display-name>ESPN+ 004</display-name>
+  </channel>
+  <channel id="41715">
+    <display-name>ESPN+ 005</display-name>
+  </channel>
+  <programme start="20260630000000 +0000" stop="20260701000000 +0000" channel="41711">
+    <title>CUID TEST 001 - If you see this, CUID matching works</title>
+    <category>Test</category>
+  </programme>
+  <programme start="20260630000000 +0000" stop="20260701000000 +0000" channel="41712">
+    <title>CUID TEST 002 - If you see this, CUID matching works</title>
+    <category>Test</category>
+  </programme>
+  <programme start="20260630000000 +0000" stop="20260701000000 +0000" channel="41713">
+    <title>CUID TEST 003 - If you see this, CUID matching works</title>
+    <category>Test</category>
+  </programme>
+  <programme start="20260630000000 +0000" stop="20260701000000 +0000" channel="41714">
+    <title>CUID TEST 004 - If you see this, CUID matching works</title>
+    <category>Test</category>
+  </programme>
+  <programme start="20260630000000 +0000" stop="20260701000000 +0000" channel="41715">
+    <title>CUID TEST 005 - If you see this, CUID matching works</title>
+    <category>Test</category>
+  </programme>
+</tv>
