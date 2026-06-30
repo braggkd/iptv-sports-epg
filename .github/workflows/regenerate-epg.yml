@@ -49,7 +49,7 @@ jobs:
             --password "$XTREAM_PASSWORD" \
             --iptveditor-m3u-url "$IPTVEDITOR_M3U_URL" \
             --output epg.xml \
-            --categories 911 606 1960
+            --categories 911 606 1960 2354 1882
 
       - name: Verify XML is well-formed
         run: |

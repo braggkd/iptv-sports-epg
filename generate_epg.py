@@ -38,6 +38,8 @@ CATEGORIES = {
     "606":  {"name": "MLB",       "duration_min": 180, "force_default_duration": True},
     "1185": {"name": "MLB Team",  "duration_min": 180, "force_default_duration": True},
     "597":  {"name": "NFL",       "duration_min": 210},  # football ~3.5hr
+    "2354": {"name": "World Cup", "duration_min": 150},  # soccer ~2.5hr
+    "1882": {"name": "FIFA+",     "duration_min": 150},  # soccer ~2.5hr
 }
 
 # Skip channels whose name looks like a category header/separator
