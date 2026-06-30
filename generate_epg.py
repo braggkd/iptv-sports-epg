@@ -100,11 +100,15 @@ class ParsedEvent:
 @dataclass
 class Channel:
     stream_id: int
-    raw_name: str               # original channel name, unmodified
+    raw_name: str               # original channel name from provider, unmodified
     category_id: str
     category_name: str          # human-friendly: "ESPN+"
     epg_channel_id: str         # provider-set EPG id, empty for event channels
     event: ParsedEvent | None   # None if we couldn't parse an event
+    # IPTVEditor-derived fields (None if not found in IPTVEditor M3U):
+    cuid: str | None = None     # IPTVEditor's internal channel ID (e.g., "41711")
+    iptveditor_name: str | None = None  # current display name in IPTVEditor M3U
+                                         # (reflects any renames the user has applied)
 
 
 # ---------- Parsers ----------
@@ -389,13 +393,108 @@ def load_streams_from_file(path: Path) -> list[dict]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+# ---------- IPTVEditor integration ----------
+#
+# IPTVEditor publishes the user's curated playlist as an M3U at a URL like
+# https://opop.pro/<token>. Each #EXTINF line carries the IPTVEditor CUID
+# (a stable per-channel identifier IPTVEditor assigns when it ingests the
+# provider's playlist) and the channel's current display name (which
+# reflects any renames the user has applied in IPTVEditor).
+#
+# We download this M3U and join its CUID + display-name onto our provider-
+# sourced channels via the stream_id, which appears in both the URL (as the
+# .ts filename) and the provider's API response. CUID becomes the XMLTV
+# <channel id>; IPTVEditor's display name becomes the <display-name> element.
+# When both are correct, IPTVEditor's auto-EPG-search can find the match.
+
+# Example #EXTINF line we parse:
+# #EXTINF:0 CUID="41711" tvg-name="ESPN+ 001" tvg-id="41711" tvg-logo="..."
+#   group-title="ESPN+ PPV",ESPN+ 001
+# http://server/live/USER/PASS/1601718.ts
+M3U_CUID_RE = re.compile(r'CUID="([^"]+)"')
+M3U_NAME_RE = re.compile(r',([^\n]+)$')  # text after the last comma on the EXTINF line
+M3U_URL_STREAM_ID_RE = re.compile(r'/(\d+)\.\w+\s*$')
+
+
+def fetch_iptveditor_m3u(url: str, user_agent: str) -> str:
+    """Download the IPTVEditor-curated M3U as text."""
+    req = urllib.request.Request(url, headers={"User-Agent": user_agent})
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        # IPTVEditor M3U files can be a few MB; read whole thing.
+        return resp.read().decode("utf-8", errors="replace")
+
+
+def parse_iptveditor_m3u(text: str) -> dict[int, dict[str, str]]:
+    """
+    Parse the IPTVEditor M3U and return a dict keyed by stream_id with
+    {cuid, name} for each channel. stream_id is extracted from the URL line.
+
+    Returns:
+        {1601718: {"cuid": "41711", "name": "ESPN+ 001"}, ...}
+    """
+    result: dict[int, dict[str, str]] = {}
+    lines = text.splitlines()
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if not line.startswith("#EXTINF"):
+            i += 1
+            continue
+
+        # Find this channel's URL on a following line (skip any #EXTVLCOPT
+        # or other metadata directives that might sit between EXTINF and URL).
+        url_line = None
+        j = i + 1
+        while j < len(lines):
+            candidate = lines[j].strip()
+            if not candidate:
+                j += 1
+                continue
+            if candidate.startswith("#"):
+                j += 1
+                continue
+            url_line = candidate
+            break
+
+        if url_line is None:
+            i += 1
+            continue
+
+        cuid_m = M3U_CUID_RE.search(line)
+        name_m = M3U_NAME_RE.search(line)
+        stream_m = M3U_URL_STREAM_ID_RE.search(url_line)
+
+        if cuid_m and stream_m:
+            stream_id = int(stream_m.group(1))
+            name = name_m.group(1).strip() if name_m else ""
+            result[stream_id] = {
+                "cuid": cuid_m.group(1),
+                "name": name,
+            }
+
+        i = j + 1  # advance past the URL line
+
+    return result
+
+
 # ---------- Channel processing ----------
 
 def process_streams(streams: list[dict], category_id: str, category_meta: dict,
-                    now_utc: datetime) -> list[Channel]:
-    """Turn raw API stream dicts into Channel objects with parsed events."""
+                    now_utc: datetime,
+                    iptveditor_by_stream_id: dict[int, dict[str, str]] | None = None
+                    ) -> list[Channel]:
+    """Turn raw API stream dicts into Channel objects with parsed events.
+
+    If iptveditor_by_stream_id is provided, each Channel gets its IPTVEditor
+    CUID and current display name attached (joined by stream_id). Channels
+    missing from the IPTVEditor map (e.g., hidden in IPTVEditor) get None
+    for those fields and will be emitted without a CUID-keyed channel id —
+    matching won't work for them, which is correct: a hidden channel
+    shouldn't get EPG data either.
+    """
     channels = []
     stale_cutoff = now_utc - timedelta(hours=STALE_CUTOFF_HOURS)
+    ie_map = iptveditor_by_stream_id or {}
 
     for s in streams:
         name = s.get("name", "").strip()
@@ -416,13 +515,18 @@ def process_streams(streams: list[dict], category_id: str, category_meta: dict,
         if event and event.stop_utc < stale_cutoff:
             continue
 
+        stream_id = int(s["stream_id"])
+        ie_meta = ie_map.get(stream_id)
+
         channels.append(Channel(
-            stream_id=int(s["stream_id"]),
+            stream_id=stream_id,
             raw_name=name,
             category_id=category_id,
             category_name=category_meta["name"],
             epg_channel_id=epg_id,
             event=event,
+            cuid=ie_meta["cuid"] if ie_meta else None,
+            iptveditor_name=ie_meta["name"] if ie_meta else None,
         ))
     return channels
 
@@ -436,19 +540,32 @@ def xmltv_time(dt: datetime) -> str:
 
 def tvg_id_for(channel: Channel) -> str:
     """
-    Stable ID we'll use both in XMLTV and for IPTVEditor matching.
-    Using stream_id guarantees uniqueness and stability across runs.
-    Prefix with category for readability.
+    The XMLTV <channel id> for this channel. When the channel was joined
+    to an IPTVEditor entry, we use its CUID — IPTVEditor's auto-match writes
+    this exact value into the playlist's tvg-id when it finds a display-name
+    match, so using the CUID is what closes the loop.
+
+    Fallback: stream_id-based ID. Stable but won't auto-match in IPTVEditor.
     """
+    if channel.cuid:
+        return channel.cuid
     slug = channel.category_name.lower().replace(" ", "-").replace("+", "plus")
     return f"iptv-{slug}-{channel.stream_id}"
 
 
 def display_name_for(channel: Channel) -> str:
     """
-    What shows up as the channel label. Keep it simple and stable across
-    events so the channel survives day-to-day schedule changes.
+    The XMLTV <display-name>. IPTVEditor's auto-match uses substring/fuzzy
+    matching against the current channel name in IPTVEditor — so we want
+    this to be exactly the name IPTVEditor currently has (which reflects
+    whatever bulk-rename the user has applied). If we don't have IPTVEditor
+    data, fall back to a category-aware short form derived from the raw
+    provider name.
     """
+    if channel.iptveditor_name:
+        return channel.iptveditor_name
+
+    # Fallback: derive a short, distinctive label from the raw provider name.
     # For ESPN+ style we can yank the channel number cleanly
     m = re.match(r"US \(ESPN\+\s*(\d+)\)", channel.raw_name)
     if m:
@@ -459,7 +576,7 @@ def display_name_for(channel: Channel) -> str:
     m = re.match(r"NFL\s+\|\s*(\S+)", channel.raw_name)
     if m:
         return f"NFL {m.group(1)}"
-    # Fallback: use the raw name up to the first pipe
+    # Last resort: use the raw name up to the first pipe
     return channel.raw_name.split("|", 1)[0].strip() or channel.raw_name
 
 
@@ -475,12 +592,6 @@ def build_xmltv(channels: list[Channel], now_utc: datetime) -> str:
         tvg_id = tvg_id_for(ch)
         display = display_name_for(ch)
         lines.append(f'  <channel id="{escape(tvg_id, {chr(34): "&quot;"})}">')
-        # IPTVEditor only fuzzy-matches against the first <display-name>;
-        # raw provider name goes first so unrenamed playlist channels hit
-        # an exact match. Short name kept as a secondary for any consumer
-        # that reads multiple display-names.
-        if ch.raw_name and ch.raw_name != display:
-            lines.append(f'    <display-name>{escape(ch.raw_name)}</display-name>')
         lines.append(f'    <display-name>{escape(display)}</display-name>')
         lines.append('  </channel>')
 
@@ -571,6 +682,13 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--env-file", default="provider.env",
                     help="Path to KEY=VALUE file with BASE_URL/USERNAME/PASSWORD (default: provider.env). "
                          "CLI args override values from this file.")
+    ap.add_argument("--iptveditor-m3u-url",
+                    help="URL of the IPTVEditor-published M3U for this playlist. When supplied, the "
+                         "EPG uses IPTVEditor's CUID as each <channel id> and IPTVEditor's current "
+                         "channel name as each <display-name>, so IPTVEditor's auto-EPG-search can "
+                         "find matches. Also reads IPTVEDITOR_M3U_URL from the env file.")
+    ap.add_argument("--iptveditor-m3u-file",
+                    help="Path to a saved IPTVEditor M3U file (for testing without re-fetching).")
     args = ap.parse_args(argv)
 
     env_path = Path(args.env_file)
@@ -582,9 +700,37 @@ def main(argv: list[str]) -> int:
             args.username = env.get("USERNAME")
         if not args.password:
             args.password = env.get("PASSWORD")
+        if not args.iptveditor_m3u_url:
+            args.iptveditor_m3u_url = env.get("IPTVEDITOR_M3U_URL")
 
     now_utc = datetime.now(timezone.utc)
     cache_dir = Path(args.cache_dir)
+
+    # Optionally pull IPTVEditor's M3U so we can join CUIDs onto channels.
+    # Without this, the EPG falls back to stream_id-based ids (which won't
+    # auto-match in IPTVEditor) but is otherwise functional.
+    iptveditor_map: dict[int, dict[str, str]] = {}
+    if args.iptveditor_m3u_file:
+        try:
+            m3u_text = Path(args.iptveditor_m3u_file).read_text(encoding="utf-8", errors="replace")
+            iptveditor_map = parse_iptveditor_m3u(m3u_text)
+            print(f"Loaded IPTVEditor M3U from {args.iptveditor_m3u_file} "
+                  f"({len(iptveditor_map)} channels with CUIDs)", file=sys.stderr)
+        except Exception as e:
+            print(f"WARN: couldn't load IPTVEditor M3U from {args.iptveditor_m3u_file}: {e}",
+                  file=sys.stderr)
+    elif args.iptveditor_m3u_url:
+        try:
+            m3u_text = fetch_iptveditor_m3u(args.iptveditor_m3u_url, args.user_agent)
+            iptveditor_map = parse_iptveditor_m3u(m3u_text)
+            print(f"Fetched IPTVEditor M3U: {len(iptveditor_map)} channels with CUIDs",
+                  file=sys.stderr)
+            if args.save_cache:
+                cache_dir.mkdir(parents=True, exist_ok=True)
+                (cache_dir / "iptveditor.m3u").write_text(m3u_text, encoding="utf-8")
+        except Exception as e:
+            print(f"WARN: IPTVEditor M3U fetch failed ({e}); proceeding without CUIDs",
+                  file=sys.stderr)
 
     if args.from_files:
         # Accept both {category_id}.json and the original names (espn_plus.json, etc.)
@@ -637,9 +783,12 @@ def main(argv: list[str]) -> int:
                     json.dumps(streams, indent=2), encoding="utf-8"
                 )
 
-        channels = process_streams(streams, cat_id, meta, now_utc)
+        channels = process_streams(streams, cat_id, meta, now_utc, iptveditor_map)
+        joined = sum(1 for c in channels if c.cuid)
+        with_events = sum(1 for c in channels if c.event)
         all_channels.extend(channels)
-        print(f"  -> {len(channels)} usable channels ({sum(1 for c in channels if c.event)} with events)",
+        print(f"  -> {len(channels)} usable channels "
+              f"({with_events} with events, {joined} joined to IPTVEditor CUIDs)",
               file=sys.stderr)
 
     xml = build_xmltv(all_channels, now_utc)
