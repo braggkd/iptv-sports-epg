@@ -23,20 +23,21 @@ from zoneinfo import ZoneInfo
 
 # ---------- Config ----------
 
-# Category IDs we care about, with their human-readable name. The parser
-# itself handles timezone and duration logic uniformly across all categories
-# (see PARSER DOCS at top of this file), so adding a new category is just:
-#
-#     "<id>": {"name": "<label>"},
+# Category IDs we care about. Each entry's `name` shows up in the EPG <category>
+# tag. Optional per-category overrides:
+#   duration_min: how long to assume events run (defaults to DEFAULT_DURATION_MIN)
+#   force_default_duration: if True, ignore any explicit stop time from the
+#       provider and always use duration_min. Useful when the provider's stop
+#       times are unreliable (MLB stop times can be 7+ hours, way too long).
 #
 # To add a category to the live runs, also include its id on the workflow's
 # --categories flag in .github/workflows/regenerate-epg.yml.
 CATEGORIES = {
-    "911":  {"name": "ESPN+"},
-    "1960": {"name": "ESPN+ VIP"},
-    "606":  {"name": "MLB"},
-    "1185": {"name": "MLB Team"},
-    "597":  {"name": "NFL"},
+    "911":  {"name": "ESPN+",     "duration_min": 180},  # tennis/soccer ~3hr
+    "1960": {"name": "ESPN+ VIP", "duration_min": 180},
+    "606":  {"name": "MLB",       "duration_min": 180, "force_default_duration": True},
+    "1185": {"name": "MLB Team",  "duration_min": 180, "force_default_duration": True},
+    "597":  {"name": "NFL",       "duration_min": 210},  # football ~3.5hr
 }
 
 # Skip channels whose name looks like a category header/separator
@@ -50,6 +51,7 @@ STALE_CUTOFF_HOURS = 24
 DEFAULT_UA = "VLC/3.0.20 LibVLC/3.0.20"
 
 # How long to assume an event runs when only a start time is given.
+# Per-category overrides in CATEGORIES take precedence.
 DEFAULT_DURATION_MIN = 180
 
 # Year >= this means "the provider used a sentinel placeholder."
@@ -161,9 +163,20 @@ def _is_empty_channel(name: str) -> bool:
     return False
 
 
-def _match_mlb_start_stop(name: str, now_utc: datetime):
+def _match_mlb_start_stop(name: str, now_utc: datetime, category_meta: dict | None = None):
     """MLB-style: '... start:YYYY-MM-DD HH:MM:SS stop:YYYY-MM-DD HH:MM:SS'.
-    Both timestamps are treated as UTC."""
+
+    Timestamps are labeled as if UTC by the provider, but empirically the
+    provider doesn't apply DST adjustments — they always treat Eastern as
+    UTC-5 (EST) even during daylight saving. So during DST months the
+    timestamp is 1 hour too late. We detect DST from the timestamp itself
+    (by asking America/New_York if it's in DST on that date) and subtract
+    1 hour when needed.
+
+    Stop times from the provider are unreliable (often 7+ hours after start),
+    so when category_meta requests force_default_duration, we ignore the
+    explicit stop and use category duration_min instead.
+    """
     m = re.search(
         r"\s*start:(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})"
         r"\s+stop:(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})",
@@ -172,16 +185,47 @@ def _match_mlb_start_stop(name: str, now_utc: datetime):
     if not m:
         return None
     try:
-        start = datetime.strptime(m.group(1), "%Y-%m-%d %H:%M:%S")
-        stop = datetime.strptime(m.group(2), "%Y-%m-%d %H:%M:%S")
+        start_naive = datetime.strptime(m.group(1), "%Y-%m-%d %H:%M:%S")
+        stop_naive = datetime.strptime(m.group(2), "%Y-%m-%d %H:%M:%S")
     except ValueError:
         return None
+
+    # Convert provider's "UTC" to actual UTC.
+    # Their timestamp = local Eastern time + 5h (assuming EST year-round).
+    # In summer (EDT), real UTC = their timestamp − 1h.
+    # In winter (EST), real UTC = their timestamp (no adjustment).
+    start_utc = start_naive.replace(tzinfo=UTC)
+    if _is_eastern_dst(start_naive):
+        start_utc -= timedelta(hours=1)
+
+    # Stop time: either use category's duration_min override, or compute
+    # from the provider's stop value (with the same DST correction).
+    meta = category_meta or {}
+    if meta.get("force_default_duration"):
+        duration = timedelta(minutes=meta.get("duration_min", DEFAULT_DURATION_MIN))
+        stop_utc = start_utc + duration
+        had_explicit_stop = False
+    else:
+        stop_utc = stop_naive.replace(tzinfo=UTC)
+        if _is_eastern_dst(stop_naive):
+            stop_utc -= timedelta(hours=1)
+        had_explicit_stop = True
+
     return ParsedEvent(
         title=_strip_match_and_clean(name, m),
-        start_utc=_to_utc(start, UTC),
-        stop_utc=_to_utc(stop, UTC),
-        had_explicit_stop=True,
+        start_utc=start_utc,
+        stop_utc=stop_utc,
+        had_explicit_stop=had_explicit_stop,
     )
+
+
+def _is_eastern_dst(naive_dt: datetime) -> bool:
+    """True if the given naive datetime falls within daylight saving time
+    in the America/New_York zone. Used for fixing provider timestamps that
+    are EST-frozen (don't handle DST)."""
+    # Attach ET and ask what offset is in effect at that local time.
+    # During EDT, dst() returns 1 hour; during EST it returns 0.
+    return naive_dt.replace(tzinfo=ET).dst() != timedelta(0)
 
 
 def _match_paren_iso(name: str, now_utc: datetime):
@@ -337,14 +381,25 @@ _MATCHERS = [
 ]
 
 
-def parse_event(name: str, now_utc: datetime) -> ParsedEvent | None:
+def parse_event(name: str, now_utc: datetime, category_meta: dict | None = None) -> ParsedEvent | None:
     """Return a ParsedEvent if the channel name has a recognizable start
-    time; None otherwise (treat as off-air)."""
+    time; None otherwise (treat as off-air).
+
+    category_meta may carry per-category overrides (e.g., force_default_duration
+    for MLB to ignore the provider's unreliable stop times). Only matchers
+    that need it consume it; others ignore the kwarg silently.
+    """
     if _is_empty_channel(name):
         return None
     for matcher in _MATCHERS:
         try:
-            event = matcher(name, now_utc)
+            # Some matchers accept category_meta as a 3rd arg; others don't.
+            # Detect via signature inspection avoided for simplicity — we
+            # just pass it positionally to matchers that accept it.
+            if matcher is _match_mlb_start_stop:
+                event = matcher(name, now_utc, category_meta)
+            else:
+                event = matcher(name, now_utc)
         except Exception:
             continue
         if event is not None:
@@ -509,7 +564,17 @@ def process_streams(streams: list[dict], category_id: str, category_meta: dict,
         if epg_id:
             continue
 
-        event = parse_event(name, now_utc)
+        event = parse_event(name, now_utc, category_meta)
+
+        # Apply per-category duration override after parsing. For categories
+        # configured with force_default_duration, recompute stop_utc from
+        # start_utc + duration_min — this handles non-MLB categories
+        # uniformly (the MLB matcher itself also respects the override for
+        # symmetry, but this catches any future categories that opt in).
+        if event and category_meta.get("force_default_duration") and event.had_explicit_stop:
+            duration = timedelta(minutes=category_meta.get("duration_min", DEFAULT_DURATION_MIN))
+            event.stop_utc = event.start_utc + duration
+            event.had_explicit_stop = False
 
         # Skip stale events
         if event and event.stop_utc < stale_cutoff:
