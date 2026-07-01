@@ -1,0 +1,58 @@
+name: Regenerate NoBuffr EPG
+# Separate workflow for the NoBuffr-targeted EPG. Runs on its own schedule
+# and commits nobuffr_epg.xml back to main.
+#
+# This is intentionally decoupled from the IPTVEditor EPG (regenerate-epg.yml)
+# so they can evolve independently — different channels, different formatting,
+# different consumer.
+on:
+  schedule:
+    # Once daily at 08:30 UTC — half an hour after the main EPG to avoid
+    # them stepping on each other's git pushes.
+    - cron: '30 8 * * *'
+  workflow_dispatch:  # Manual trigger
+
+permissions:
+  contents: write
+
+concurrency:
+  group: regenerate-nobuffr-epg
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate NoBuffr EPG
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+          XTREAM_USERNAME: ${{ secrets.XTREAM_USERNAME }}
+          XTREAM_PASSWORD: ${{ secrets.XTREAM_PASSWORD }}
+        run: |
+          python3 generate_nobuffr_epg.py \
+            --base-url "$BASE_URL" \
+            --username "$XTREAM_USERNAME" \
+            --password "$XTREAM_PASSWORD" \
+            --output nobuffr_epg.xml \
+            --categories 911
+      - name: Verify XML is well-formed
+        run: |
+          python3 -c "import xml.etree.ElementTree as ET; ET.parse('nobuffr_epg.xml'); print('ok')"
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nobuffr_epg.xml
+          if git diff --cached --quiet; then
+            echo "No changes to nobuffr_epg.xml; nothing to commit"
+            exit 0
+          fi
+          git commit -m "nobuffr epg refresh $(date -u +%Y-%m-%dT%H:%M:%SZ) [skip ci]"
+          git push
